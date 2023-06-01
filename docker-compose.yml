@@ -1,0 +1,31 @@
+version: '3'
+services:
+  api:
+    container_name: api
+    build: .
+    command: python app.py run
+    volumes:
+      - .:/app
+    ports:
+      - 5000:5000
+    environment:
+      FLASK_ENV: "development"
+      DATABASE_URL: "postgresql://postgres:postgres@db:5432/pybank-db"
+      DEBUG: True
+    depends_on:
+      - db
+
+  db:
+    image: postgres:12-alpine
+    restart: unless-stopped
+    volumes:
+      - postgres-data:/data
+    environment:
+      POSTGRES_DB: pybank-db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - 5432:5432
+
+volumes:
+  postgres-data:
