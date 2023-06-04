@@ -1,6 +1,8 @@
 """API routes"""
-from flask import render_template, request, jsonify
-from models.account import Account, db
+from flask import render_template, request
+from operations.balance import get_balance
+from operations.transactions import process_transaction
+from models.event import Event
 
 
 def init_routes(app):
@@ -14,53 +16,25 @@ def init_routes(app):
     @app.post("/reset")
     def reset():
         """Reset state before starting tests"""
-        return "", 200
+        return "OK", 200
 
     @app.get("/balance")
     def balance():
         """Get balance from an account"""
-
         account_id = request.args.get("account_id", 0, int)
 
-        if account_id > 0:
-            account = Account.query.get(account_id)
-            return jsonify(
-                {"destination": {"id": account.id, "balance": account.balance}}
-            )
-        return "0", 404
+        return get_balance(account_id)
 
     @app.post("/event")
     def event():
         """Deal with account transactions: deposit, transfer and withdraw"""
 
-        trx_type = request.json["type"]
+        event = Event()
+        event.trx_type = request.json["type"]
+        if "origin" in request.json:
+            event.origin = request.json["origin"]
+        if "destination" in request.json:
+            event.destination = request.json["destination"]
+        event.amount = request.json["amount"]
 
-        if trx_type == "deposit":
-            destination = request.json["destination"]
-            amount = request.json["amount"]
-
-            account = Account(destination, amount)
-            db.session.add(account)
-            db.session.commit()
-
-            return {"destination": {"id": destination, "balance": amount}}, 201
-
-        if trx_type == "transfer":
-            origin = request.json["origin"]
-            destination = request.json["destination"]
-            amount = request.json["amount"]
-            if origin == "100":
-                return {
-                    "origin": {"id": origin, "balance": 0},
-                    "destination": {"id": destination, "balance": 15},
-                }
-
-        if trx_type == "withdraw":
-            origin = request.json["origin"]
-            amount = request.json["amount"]
-            if origin == "100":
-                return {
-                    "origin": {"id": origin, "balance": 15},
-                }
-
-        return "0", 404
+        return process_transaction(event)
