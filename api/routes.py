@@ -1,6 +1,11 @@
 """API routes"""
 from flask import render_template, request
 
+from operations.balance import get_balance
+import operations.transactions as transactions
+import operations.reset as reset_db
+from models.event import Event
+
 
 def init_routes(app):
     """Initilize API routes"""
@@ -13,45 +18,25 @@ def init_routes(app):
     @app.post("/reset")
     def reset():
         """Reset state before starting tests"""
-        return "", 200
+        return reset_db.execute()
 
     @app.get("/balance")
     def balance():
         """Get balance from an account"""
-
         account_id = request.args.get("account_id", 0, int)
 
-        if account_id == 100:
-            return "20"
-        return "0", 404
+        return get_balance(account_id)
 
     @app.post("/event")
     def event():
-        """Transfer from existing account"""
+        """Deal with account transactions: deposit, transfer and withdraw"""
 
-        trx_type = request.json["type"]
+        event = Event()
+        event.trx_type = request.json["type"]
+        if "origin" in request.json:
+            event.origin = request.json["origin"]
+        if "destination" in request.json:
+            event.destination = request.json["destination"]
+        event.amount = request.json["amount"]
 
-        if trx_type == "deposit":
-            destination = request.json["destination"]
-            amount = request.json["amount"]
-            return {"destination": {"id": destination, "balance": amount}}, 201
-
-        if trx_type == "transfer":
-            origin = request.json["origin"]
-            destination = request.json["destination"]
-            amount = request.json["amount"]
-            if origin == "100":
-                return {
-                    "origin": {"id": origin, "balance": 0},
-                    "destination": {"id": destination, "balance": 15},
-                }
-
-        if trx_type == "withdraw":
-            origin = request.json["origin"]
-            amount = request.json["amount"]
-            if origin == "100":
-                return {
-                    "origin": {"id": origin, "balance": 15},
-                }
-
-        return "0", 404
+        return transactions.execute(event)

@@ -20,12 +20,13 @@ services:
     restart: unless-stopped
     volumes:
       - postgres-data:/data
+    user: postgres
     environment:
       POSTGRES_DB: pybank-db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - 5432:5432
+      - 6543:5432
 
 volumes:
   postgres-data:
