@@ -1,7 +1,9 @@
 """API routes"""
 from flask import render_template, request
+
 from operations.balance import get_balance
-from operations.transactions import process_transaction
+import operations.transactions as transactions
+import operations.reset as reset_db
 from models.event import Event
 
 
@@ -16,7 +18,7 @@ def init_routes(app):
     @app.post("/reset")
     def reset():
         """Reset state before starting tests"""
-        return "OK", 200
+        return reset_db.execute()
 
     @app.get("/balance")
     def balance():
@@ -37,4 +39,4 @@ def init_routes(app):
             event.destination = request.json["destination"]
         event.amount = request.json["amount"]
 
-        return process_transaction(event)
+        return transactions.execute(event)

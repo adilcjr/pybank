@@ -1,27 +1,48 @@
-"""Here we have the transaction events"""
+""" Transactions event processor """
 from models.event import Event
+from models.account import Account, db
 
 
-def process_transaction(event: Event):
-    """Identifies the transaction type to deal with data"""
+def execute(event: Event):
+    """Executes the transaction processor"""
 
     if event.trx_type == "deposit":
-        if event.destination == "100":
-            return {
-                "destination": {"id": event.destination, "balance": event.amount}
-            }, 201
+        account = Account.query.get(event.destination)
+        if account is not None:
+            new_amount = account.balance + event.amount
+            account.balance = new_amount
+        else:
+            # new account
+            account = Account(event.destination, event.amount)
+            db.session.add(account)
+
+        db.session.commit()
+        return {"destination": {"id": str(account.id), "balance": account.balance}}, 201
 
     if event.trx_type == "transfer":
-        if event.origin == "100":
+        origin_account = Account.query.get(event.origin)
+        destination_account = Account.query.get(event.destination)
+        if origin_account and destination_account is not None:
+            origin_account.balance -= event.amount
+            destination_account.balance += event.amount
+            db.session.commit()
             return {
-                "origin": {"id": event.origin, "balance": 0},
-                "destination": {"id": event.destination, "balance": 15},
+                "origin": {
+                    "id": str(origin_account.id),
+                    "balance": origin_account.balance,
+                },
+                "destination": {
+                    "id": str(destination_account.id),
+                    "balance": destination_account.balance,
+                },
             }, 201
 
     if event.trx_type == "withdraw":
-        if event.origin == "100":
-            return {
-                "origin": {"id": event.origin, "balance": 15},
-            }, 201
+        account = Account.query.get(event.origin)
+        if account is not None:
+            new_amount = account.balance - event.amount
+            account.balance = new_amount
+            db.session.commit()
+            return {"origin": {"id": str(account.id), "balance": account.balance}}, 201
 
     return "0", 404

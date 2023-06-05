@@ -25,4 +25,4 @@ class Account(db.Model):
         return jsonify({"id": self.id, "balance": self.balance})
 
     def __repr__(self):
-        return f"<account {self.id}, {self.balance}>"
+        return f"<account: {self.id}, {self.balance}>"
